@@ -54,17 +54,50 @@ case "Modificar":
     Nombres = :Nombres,
     Apellidos = :Apellidos,
     Correo = :Correo,
-    Telefono = :Telefono,
-    Foto = :Foto WHERE
+    Telefono = :Telefono
+    WHERE
     ID = :ID");
 
     $sentencia -> bindParam('Nombres', $Nombres);
     $sentencia -> bindParam('Apellidos', $Apellidos);
     $sentencia -> bindParam('Correo', $Correo);
     $sentencia -> bindParam('Telefono', $Telefono);
-    $sentencia -> bindParam('Foto', $Foto);
     $sentencia -> bindParam('ID', $ID);
     $sentencia -> execute();
+
+//Validación para saber si el usuario esta seleccionando una foto para actuaizar
+
+    $Fecha = new DateTime(); //Se recoge la fecha
+    $NombreArchivo = ($Foto!= NULL)?$Fecha->getTimestamp()."_".$_FILES["Foto"]["name"]:"user.png"; //Si la variable foto es diferente que "NULL", usando la varible fecha usamos la funcion getmistamp para concatenar la fecha con el nombre del documento, en caso que sea NULL usaremos la imgane por defecto "user.png"
+
+    $tmpFoto = $_FILES["Foto"]["tmp_name"]; //Se guarda en la variable el nombre temporal de la foto
+
+    if ($tmpFoto != NULL ){ //Si condicional que se aplica solo si la variable es diferente que NULL
+        move_uploaded_file($tmpFoto,"../img/".$NombreArchivo); //Movemos ls foto selecionada a la carpeta correspondiente
+
+        $sentencia= $pdo -> prepare("SELECT Foto FROM empleados WHERE ID = :ID"); //Sentencia de busque en la base datos para saber el nombre de la foto antigua
+        $sentencia -> bindParam('ID', $ID);
+        $sentencia -> execute();
+        $empleado = $sentencia -> fetch(PDO::FETCH_LAZY);
+
+        if(isset($empleado["Foto"])){ //validamos si existe una foto con ese nombre, si existe la borramos
+            if(file_exists("../img/".$empleado["Foto"])){
+                unlink("../img/".$empleado["Foto"]);
+            }
+        }
+
+            /*Sentencia para actualizar la foto*/
+
+        $sentencia= $pdo -> prepare("UPDATE empleados SET
+        Foto = :Foto
+        WHERE
+        ID = :ID");
+        $sentencia -> bindParam('Foto', $NombreArchivo);
+        $sentencia -> bindParam('ID', $ID);
+        $sentencia -> execute();
+    }
+
+
 
     header('Location: index.php');
 
@@ -74,6 +107,21 @@ case "Modificar":
 
     case "Eliminar":
 
+// En el siguiente bloque de codigo hacemos busqueda en la base de datos para averiguar el nombre 
+// de la imagen y revisar si existe esa imagen en la dirrecion para poder borrar la foto antigua
+// al momento de eliminar el usuario
+
+        $sentencia= $pdo -> prepare("SELECT Foto FROM empleados WHERE ID = :ID");
+        $sentencia -> bindParam('ID', $ID);
+        $sentencia -> execute();
+        $empleado = $sentencia -> fetch(PDO::FETCH_LAZY);
+
+        if(isset($empleado["Foto"])){
+            if(file_exists("../img/".$empleado["Foto"])){
+                unlink("../img/".$empleado["Foto"]);
+            }
+        }
+        
         $sentencia= $pdo -> prepare("DELETE FROM empleados WHERE ID = :ID");
 
         $sentencia -> bindParam('ID', $ID);
@@ -120,35 +168,35 @@ $listaEmpleados = $sentencia -> fetchALL(PDO::FETCH_ASSOC);
                     <div class="form-group col-sm-6">
 						<div class="help-block with-errors"></div>
                             <label for="">Nombres:</label>
-                            <input type="text" name="Nombres" value="<?php echo $Nombres;?>" placeholder="Ingresa tus nombres" id="Nombres" class="form-control" require="Por favor ingresa tus nombres"></input>
+                            <input type="text" name="Nombres" value="<?php echo $Nombres;?>" placeholder="Ingresa tus nombres" id="Nombres" class="form-control" require="Por favor ingresa tus nombres" required></input>
 							<div class="input-group-icon"><i class="fa fa-user"></i></div>
 					</div>
 
                     <div class="form-group col-sm-6">
 						<div class="help-block with-errors"></div>
                             <label for="">Apellidos:</label>
-                            <input type="text" name="Apellidos" value="<?php echo $Apellidos;?>" placeholder="Ingresa tus apellidos" id="Apellidos" class="form-control" require="Por favor ingresa tus apellidos"></input>
+                            <input type="text" name="Apellidos" value="<?php echo $Apellidos;?>" placeholder="Ingresa tus apellidos" id="Apellidos" class="form-control" require="Por favor ingresa tus apellidos" required></input>
 							<div class="input-group-icon"><i class="fa fa-user"></i></div>
 					</div>
                     
                     <div class="form-group col-sm-6">
 						<div class="help-block with-errors"></div>
                             <label for="">Correo:</label>
-                            <input type="email" name="Correo" value="<?php echo $Correo;?>" placeholder="Ingresa tu correo" id="Correo" class="form-control" require="Por favor ingresa tu correo"></input>
+                            <input type="email" name="Correo" value="<?php echo $Correo;?>" placeholder="Ingresa tu correo" id="Correo" class="form-control" require="Por favor ingresa tu correo" required></input>
 							<div class="input-group-icon"><i class="fa fa-user"></i></div>
 					</div>
 
                     <div class="form-group col-sm-6">
 						<div class="help-block with-errors"></div>
                             <label for="">Telefono:</label>
-                            <input type="number" name="Telefono" value="<?php echo $Telefono;?>" placeholder="Ingresa tu teléfono" id="Telefono" class="form-control" require="Por favor ingresa tu teledono"></input>
+                            <input type="number" name="Telefono" value="<?php echo $Telefono;?>" placeholder="Ingresa tu teléfono" id="Telefono" class="form-control" require="Por favor ingresa tu teledono" required></input>
 							<div class="input-group-icon"><i class="fa fa-user"></i></div>
 					</div>
 
                     <div class="form-group col-sm-6">
 						<div class="help-block with-errors"></div>
                             <label for="">Foto:</label><br>
-                            <input type="file" accept="image/*" name="Foto" value="<?php echo $Foto ;?>" placeholder="Tu foto" id="Foto"  requiere=""></input>
+                            <input type="file" accept="image/*" name="Foto" value="<?php echo $Foto ;?>" placeholder="Tu foto" id="Foto"  requiere="" required></input>
                             <div class="input-group-icon"><i class="fa fa-user"></i></div>
 					</div>          
 
